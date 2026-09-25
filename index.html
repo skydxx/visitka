@@ -1,0 +1,906 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>skydxx — nikolay</title>
+<meta name="description" content="Николай aka skydxx — делаю VPN-сервисы, приложения и инфраструктуру. Основатель KVIYX. Люблю военную авиацию.">
+<meta property="og:site_name" content="skydxx.xyz">
+<meta property="og:title" content="skydxx — nikolay">
+<meta property="og:description" content="Делаю VPN-сервисы, приложения и инфраструктуру. Основатель KVIYX.">
+<meta property="og:url" content="https://skydxx.xyz/">
+<meta property="og:type" content="website">
+<meta name="theme-color" content="#070709">
+<link rel="icon" href="favicon.svg" type="image/svg+xml">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Unbounded:wght@500;700;900&family=Inter:wght@400;500;600&family=JetBrains+Mono:wght@400;500;700&display=swap">
+<style>
+:root {
+  --bg: #070709;
+  --ink: #f2f3f7;
+  --dim: #9599a6;
+  --faint: #565a66;
+  --line: rgba(255,255,255,.09);
+  --acc: #5eb1ff;
+  --acc2: #a78bfa;
+  --warn: #ffb864;
+  --glass: rgba(255,255,255,.045);
+  --glass-strong: rgba(255,255,255,.09);
+  --fd: 'Unbounded', sans-serif;
+  --fb: 'Inter', system-ui, sans-serif;
+  --fm: 'JetBrains Mono', monospace;
+  --ease: cubic-bezier(.22,1,.36,1);
+}
+* { box-sizing: border-box; margin: 0; padding: 0; }
+html { scroll-behavior: smooth; }
+body {
+  background: var(--bg); color: var(--ink); font-family: var(--fb);
+  -webkit-font-smoothing: antialiased; overflow-x: hidden;
+}
+::selection { background: rgba(94,177,255,.28); }
+::-webkit-scrollbar { width: 8px; }
+::-webkit-scrollbar-track { background: transparent; }
+::-webkit-scrollbar-thumb { background: rgba(255,255,255,.14); border-radius: 99px; }
+::-webkit-scrollbar-thumb:hover { background: rgba(94,177,255,.45); }
+
+.mono { font-family: var(--fm); }
+
+/* ── фоны ── */
+#shader { position: fixed; inset: 0; z-index: 0; opacity: .9; }
+#shader canvas { width: 100%; height: 100%; display: block; }
+#vignette {
+  position: fixed; inset: 0; z-index: 1; pointer-events: none;
+  background:
+    radial-gradient(120% 90% at 50% 0%, transparent 40%, rgba(7,7,9,.72) 100%),
+    linear-gradient(180deg, rgba(7,7,9,.25), rgba(7,7,9,.68));
+}
+#aurora {
+  position: fixed; inset: -20%; z-index: 0; pointer-events: none;
+  background:
+    radial-gradient(38% 38% at 22% 30%, rgba(94,177,255,.13), transparent 70%),
+    radial-gradient(42% 42% at 78% 22%, rgba(167,139,250,.11), transparent 70%),
+    radial-gradient(46% 46% at 60% 82%, rgba(94,177,255,.08), transparent 70%);
+  filter: blur(40px);
+  animation: aurora 24s ease-in-out infinite alternate;
+}
+@keyframes aurora {
+  0%   { transform: translate3d(-3%,-2%,0) scale(1); opacity: .7; }
+  50%  { transform: translate3d(3%,2%,0) scale(1.07); opacity: 1; }
+  100% { transform: translate3d(-2%,3%,0) scale(1.03); opacity: .8; }
+}
+
+/* ── курсор-прицел ── */
+@media (pointer: fine) { html.cur-on, html.cur-on * { cursor: none !important; } }
+.cur-dot, .cur-ret {
+  position: fixed; top: 0; left: 0; pointer-events: none; z-index: 9999;
+  will-change: transform;
+}
+.cur-dot { width: 5px; height: 5px; border-radius: 50%; background: var(--acc); box-shadow: 0 0 10px rgba(94,177,255,.7); }
+.cur-ret {
+  width: 36px; height: 36px; border-radius: 50%;
+  border: 1px solid rgba(94,177,255,.55); opacity: .8;
+  background-image:
+    linear-gradient(var(--acc), var(--acc)),
+    linear-gradient(var(--acc), var(--acc)),
+    linear-gradient(var(--acc), var(--acc)),
+    linear-gradient(var(--acc), var(--acc));
+  background-repeat: no-repeat;
+  background-position: 50% 0, 50% 100%, 0 50%, 100% 50%;
+  background-size: 1.5px 7px, 1.5px 7px, 7px 1.5px, 7px 1.5px;
+  transition: width .2s ease, height .2s ease, background-color .2s, opacity .25s, border-color .2s, transform .1s;
+}
+.cur-ret.hover { width: 56px; height: 56px; background-color: rgba(94,177,255,.10); border-color: rgba(94,177,255,.85); }
+.cur-ret.down { width: 26px; height: 26px; }
+.cur-hide { opacity: 0 !important; }
+@media (prefers-reduced-motion: reduce) { .cur-ret { transition: opacity .25s; } }
+
+/* ── каркас ── */
+.wrap { position: relative; z-index: 2; max-width: 880px; margin: 0 auto; padding: 0 28px; }
+
+/* ── верхняя мета ── */
+.top-meta {
+  display: flex; justify-content: space-between; align-items: center;
+  padding-top: 30px; font-family: var(--fm); font-size: 13px; color: var(--dim);
+}
+.top-meta .cmd .p { color: var(--acc); }
+
+/* ── hero ── */
+.hero { min-height: 88vh; display: flex; flex-direction: column; justify-content: center; position: relative; }
+.hero-badge {
+  display: inline-flex; align-items: center; gap: 8px; width: fit-content;
+  font-family: var(--fm); font-size: 12px; color: var(--dim);
+  border: 1px solid var(--line); border-radius: 999px; padding: 7px 14px;
+  background: var(--glass); backdrop-filter: blur(14px); -webkit-backdrop-filter: blur(14px);
+  margin-bottom: 26px;
+}
+.hero-badge svg { width: 12px; height: 12px; color: var(--acc); }
+h1 {
+  font-family: var(--fd); font-weight: 900;
+  font-size: clamp(58px, 10.5vw, 128px); line-height: .95; letter-spacing: .01em;
+  background: linear-gradient(105deg, #eef2ff 20%, #9ecbff 55%, #b6a3f7 85%);
+  -webkit-background-clip: text; background-clip: text;
+  -webkit-text-fill-color: transparent; color: transparent;
+  filter: drop-shadow(0 4px 24px rgba(0,0,0,.55));
+}
+h1 b { -webkit-text-fill-color: var(--acc); color: var(--acc); }
+.role {
+  font-family: var(--fm); font-size: clamp(14px, 1.8vw, 17px); color: var(--dim);
+  margin-top: 18px; min-height: 1.6em;
+}
+.role .caret { display: inline-block; width: 9px; background: var(--acc); height: 1.1em;
+  vertical-align: text-bottom; margin-left: 3px; animation: caret 1s steps(1) infinite; }
+@keyframes caret { 50% { opacity: 0; } }
+.hero-cta { display: flex; gap: 12px; margin-top: 38px; flex-wrap: wrap; }
+
+/* стеклянная кнопка с бликом */
+.btn {
+  position: relative; overflow: hidden;
+  display: inline-flex; align-items: center; gap: 9px;
+  padding: 12px 24px; border-radius: 999px;
+  border: 1px solid var(--line);
+  background: var(--glass); backdrop-filter: blur(16px) saturate(140%); -webkit-backdrop-filter: blur(16px) saturate(140%);
+  font-family: var(--fb); font-size: 14px; font-weight: 500;
+  color: var(--ink); text-decoration: none; cursor: pointer;
+  box-shadow: 0 2px 14px rgba(0,0,0,.38);
+  transition: transform .25s var(--ease), background .25s, box-shadow .25s, color .25s, border-color .25s;
+}
+.btn::before {
+  content: ""; position: absolute; top: 0; left: -130%; width: 60%; height: 100%;
+  background: linear-gradient(100deg, transparent, rgba(255,255,255,.22), transparent);
+  transform: skewX(-18deg); transition: left .6s var(--ease);
+}
+.btn:hover::before { left: 150%; }
+.btn:hover { transform: translateY(-3px); background: var(--glass-strong); color: var(--acc); border-color: rgba(94,177,255,.4); box-shadow: 0 12px 32px rgba(0,0,0,.5); }
+.btn:active { transform: translateY(-1px) scale(.98); }
+.btn svg { width: 16px; height: 16px; flex: none; }
+.btn-primary {
+  border-color: rgba(94,177,255,.45);
+  background: linear-gradient(135deg, rgba(94,177,255,.22), rgba(167,139,250,.20));
+}
+.btn-primary:hover { background: linear-gradient(135deg, rgba(94,177,255,.34), rgba(167,139,250,.30)); color: #cfe7ff; }
+
+.scroll-hint {
+  position: absolute; bottom: 26px; left: 50%; transform: translateX(-50%);
+  color: var(--faint); animation: hintBob 2s ease-in-out infinite;
+}
+.scroll-hint svg { width: 22px; height: 22px; }
+@keyframes hintBob { 0%,100% { transform: translate(-50%,0); opacity: .5; } 50% { transform: translate(-50%,8px); opacity: 1; } }
+
+/* ── секции ── */
+.section { padding: 84px 0 0; }
+.sec-cap {
+  font-family: var(--fm); font-size: 12px; letter-spacing: .18em; text-transform: uppercase;
+  color: var(--acc); margin-bottom: 18px; display: flex; align-items: center; gap: 12px;
+}
+.sec-cap::after { content: ""; height: 1px; flex: 1; background: linear-gradient(90deg, var(--line), transparent); }
+
+.bio { font-size: 17px; line-height: 1.7; color: var(--dim); max-width: 58ch; text-wrap: pretty; }
+.bio em { color: var(--ink); font-style: normal; }
+.bio a { color: var(--acc); text-decoration: none; border-bottom: 1px solid rgba(94,177,255,.35); transition: border-color .15s; }
+.bio a:hover { border-color: var(--acc); }
+
+/* ── плитки «чем занимаюсь» ── */
+.skills { display: grid; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); gap: 14px; }
+.sk {
+  position: relative; overflow: hidden;
+  padding: 20px 20px 18px; border-radius: 16px;
+  background: var(--glass); border: 1px solid var(--line);
+  backdrop-filter: blur(16px); -webkit-backdrop-filter: blur(16px);
+  color: inherit; text-decoration: none; display: block;
+  transition: transform .25s var(--ease), border-color .25s, background .25s;
+}
+.sk:hover { transform: translateY(-3px); border-color: rgba(94,177,255,.35); background: var(--glass-strong); }
+.sk .no {
+  font-family: var(--fm); font-size: 11px; color: var(--acc);
+  display: block; margin-bottom: 10px; letter-spacing: .08em;
+}
+.sk .nm { font-family: var(--fd); font-weight: 700; font-size: 16px; display: block; margin-bottom: 7px; transition: color .15s; }
+.sk:hover .nm { color: var(--acc); }
+.sk .ds { font-family: var(--fm); font-size: 11.5px; color: var(--faint); line-height: 1.6; }
+.sk.wide { grid-column: 1 / -1; display: flex; align-items: baseline; gap: 16px; padding: 15px 20px; }
+.sk.wide .no { margin: 0; }
+.sk.wide .nm { font-family: var(--fm); font-weight: 500; font-size: 13.5px; color: var(--dim); margin: 0; }
+.sk.wide .ds { margin-left: auto; }
+
+/* ── проекты ── */
+.projects { display: grid; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); gap: 16px; }
+.card {
+  --mx: 50%; --my: 50%;
+  position: relative; overflow: hidden;
+  padding: 26px 24px; border-radius: 20px;
+  background: var(--glass); border: 1px solid var(--line);
+  backdrop-filter: blur(20px) saturate(160%); -webkit-backdrop-filter: blur(20px) saturate(160%);
+  box-shadow: 0 4px 32px rgba(0,0,0,.35), inset 0 1px 0 rgba(255,255,255,.09);
+  text-decoration: none; color: inherit; display: block;
+  transition: transform .3s var(--ease), border-color .3s, box-shadow .3s;
+}
+.card::before {
+  content: ""; position: absolute; inset: 0; pointer-events: none; opacity: 0;
+  background: radial-gradient(240px circle at var(--mx) var(--my), rgba(94,177,255,.14), transparent 70%);
+  transition: opacity .3s;
+}
+.card:hover::before { opacity: 1; }
+.card:hover { transform: translateY(-4px); border-color: rgba(94,177,255,.35);
+  box-shadow: 0 16px 48px rgba(0,0,0,.5), inset 0 1px 0 rgba(255,255,255,.14); }
+.card h3 {
+  font-family: var(--fd); font-weight: 700; font-size: 19px; margin-bottom: 10px;
+  display: flex; align-items: center; gap: 9px;
+}
+.card h3 .arr { margin-left: auto; color: var(--faint); transition: color .2s, transform .25s var(--ease); font-family: var(--fm); font-weight: 400; font-size: 16px; }
+.card:hover h3 .arr { color: var(--acc); transform: translate(3px,-3px); }
+.card p { font-size: 14px; line-height: 1.6; color: var(--dim); }
+.card .tags { display: flex; gap: 7px; margin-top: 16px; flex-wrap: wrap; align-items: center; }
+.card .tag {
+  font-family: var(--fm); font-size: 10.5px; letter-spacing: .05em;
+  color: var(--dim); border: 1px solid var(--line); border-radius: 6px; padding: 3px 8px;
+}
+.badge { display: inline-flex; align-items: center; gap: 6px; font-family: var(--fm); font-size: 10.5px; }
+.badge::before { content: ""; width: 6px; height: 6px; border-radius: 50%; }
+.badge.live { color: #62c36c; } .badge.live::before { background: #62c36c; }
+.badge.soon { color: var(--warn); } .badge.soon::before { background: var(--warn); }
+.badge.priv { color: var(--acc2); } .badge.priv::before { background: var(--acc2); }
+
+/* ── ангар (галерея) ── */
+.hangar-note { font-size: 15px; line-height: 1.65; color: var(--dim); max-width: 58ch; margin-bottom: 24px; }
+.hangar-note em { color: var(--ink); font-style: normal; }
+.gallery { display: grid; grid-template-columns: repeat(auto-fill, minmax(200px, 1fr)); gap: 12px; }
+.ph {
+  position: relative; overflow: hidden; border-radius: 14px;
+  border: 1px solid var(--line); background: var(--glass);
+  aspect-ratio: 4 / 3; padding: 0; cursor: pointer; display: block; width: 100%;
+  transition: transform .25s var(--ease), border-color .25s, box-shadow .25s;
+}
+.ph img {
+  width: 100%; height: 100%; object-fit: cover; display: block;
+  transition: transform .45s var(--ease), filter .3s;
+  filter: saturate(.92) contrast(1.02);
+}
+.ph:hover { transform: translateY(-3px); border-color: rgba(94,177,255,.4); box-shadow: 0 14px 36px rgba(0,0,0,.45); }
+.ph:hover img { transform: scale(1.06); filter: saturate(1.05); }
+.hangar-empty {
+  font-family: var(--fm); font-size: 13px; color: var(--faint);
+  border: 1px dashed var(--line); border-radius: 14px;
+  padding: 34px 20px; text-align: center; line-height: 1.8;
+}
+/* лайтбокс */
+#lb {
+  position: fixed; inset: 0; z-index: 150;
+  display: flex; align-items: center; justify-content: center; flex-direction: column; gap: 14px;
+  padding: 28px; background: rgba(5,5,8,.9); backdrop-filter: blur(10px); -webkit-backdrop-filter: blur(10px);
+  opacity: 0; visibility: hidden; transition: opacity .25s, visibility .25s; cursor: pointer;
+}
+#lb.show { opacity: 1; visibility: visible; }
+#lb img {
+  max-width: min(94vw, 1100px); max-height: 82vh; border-radius: 14px;
+  border: 1px solid var(--line); box-shadow: 0 30px 90px rgba(0,0,0,.7);
+  transform: scale(.92); transition: transform .3s var(--ease);
+}
+#lb.show img { transform: none; }
+#lb .cap { font-family: var(--fm); font-size: 12px; color: var(--dim); letter-spacing: .08em; }
+
+/* ── контакты ── */
+.contacts { display: grid; grid-template-columns: repeat(auto-fit, minmax(175px, 1fr)); gap: 12px; }
+.ct {
+  position: relative; overflow: hidden;
+  display: flex; align-items: center; gap: 14px;
+  padding: 18px 20px; border-radius: 16px;
+  background: var(--glass); border: 1px solid var(--line);
+  backdrop-filter: blur(16px); -webkit-backdrop-filter: blur(16px);
+  color: inherit; text-decoration: none; cursor: pointer;
+  font-family: var(--fb);
+  transition: transform .25s var(--ease), border-color .25s, background .25s;
+}
+.ct:hover { transform: translateY(-3px); border-color: rgba(94,177,255,.4); background: var(--glass-strong); }
+.ct:hover .ct-ico { color: var(--acc); transform: scale(1.12); }
+.ct-ico { color: var(--dim); flex: none; transition: color .2s, transform .25s var(--ease); display: inline-flex; }
+.ct-ico svg { width: 21px; height: 21px; }
+.ct-body { min-width: 0; }
+.ct-name { font-size: 14px; font-weight: 600; }
+.ct-val { font-family: var(--fm); font-size: 12px; color: var(--dim); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+
+/* ── футер ── */
+.foot {
+  margin-top: 90px; border-top: 1px solid var(--line);
+  padding: 22px 0 28px;
+  display: flex; align-items: center; justify-content: space-between;
+  font-family: var(--fm); font-size: 12px; color: var(--faint);
+}
+.foot .egg-btn {
+  background: none; border: 1px solid rgba(255,107,107,.35); border-radius: 8px;
+  padding: 6px 12px;
+  color: #ff6b6b; font-family: var(--fm); font-size: 12px; cursor: pointer;
+  letter-spacing: .06em;
+  transition: transform .15s, background .2s, border-color .2s;
+}
+.foot .egg-btn:hover { transform: translateY(-2px); background: rgba(255,107,107,.10); border-color: rgba(255,107,107,.6); }
+
+/* ── reveal ── */
+.reveal { opacity: 0; transform: translateY(26px); transition: opacity .7s var(--ease), transform .7s var(--ease); }
+.reveal.in { opacity: 1; transform: none; }
+@media (prefers-reduced-motion: reduce) { .reveal { opacity: 1; transform: none; transition: none; } }
+
+/* ── пасхалка ── */
+@keyframes glitch {
+  0% { transform: translate(0); filter: none; }
+  20% { transform: translate(-6px, 3px); filter: hue-rotate(90deg) saturate(3); }
+  40% { transform: translate(5px, -4px) skewX(3deg); filter: invert(1); }
+  60% { transform: translate(-4px, -2px); filter: hue-rotate(200deg); }
+  80% { transform: translate(4px, 4px) skewX(-2deg); filter: saturate(4) contrast(2); }
+  100% { transform: translate(0); filter: none; }
+}
+body.glitch { animation: glitch .45s steps(2) 2; }
+.jet-fly {
+  position: fixed; left: -180px; z-index: 130; pointer-events: none;
+  color: var(--acc); filter: drop-shadow(0 0 14px rgba(94,177,255,.55));
+  animation: jetfly 3.4s linear forwards;
+}
+.jet-fly svg { width: 116px; height: auto; display: block; }
+.jet-fly .trail {
+  position: absolute; top: 50%; right: 94%; height: 1.5px; width: 240px;
+  background: linear-gradient(90deg, transparent, rgba(94,177,255,.7));
+  transform: translateY(-50%);
+}
+@keyframes jetfly {
+  0%   { transform: translateX(0) rotate(-.5deg); }
+  100% { transform: translateX(calc(100vw + 380px)) rotate(1deg); }
+}
+.msl-fly {
+  position: fixed; left: -120px; z-index: 129; pointer-events: none;
+  color: #cfe2ff; filter: drop-shadow(0 0 8px rgba(255,184,100,.6));
+  animation: mslfly 2.15s cubic-bezier(.25,.1,.35,1) forwards;
+}
+.msl-fly svg { width: 40px; height: auto; display: block; }
+.msl-fly .mtrail {
+  position: absolute; top: 50%; right: 88%; height: 2px; width: 130px;
+  background: linear-gradient(90deg, transparent, rgba(255,150,60,.2) 40%, rgba(255,184,100,.9));
+  transform: translateY(-50%);
+  border-radius: 2px;
+}
+@keyframes mslfly {
+  0%   { transform: translateX(0); opacity: 0; }
+  7%   { opacity: 1; }
+  100% { transform: translateX(calc(100vw + 300px)); opacity: 1; }
+}
+.secret-ov {
+  position: fixed; inset: 0; z-index: 100;
+  display: flex; align-items: center; justify-content: center; padding: 24px;
+  background: rgba(5,5,8,.85); backdrop-filter: blur(8px); -webkit-backdrop-filter: blur(8px);
+  opacity: 0; visibility: hidden; transition: opacity .25s, visibility .25s; cursor: pointer;
+}
+.secret-ov.show { opacity: 1; visibility: visible; }
+.secret-box {
+  text-align: center; max-width: 520px;
+  transform: scale(.88) rotate(-1.5deg);
+  transition: transform .35s cubic-bezier(.2,1.4,.4,1);
+}
+.secret-ov.show .secret-box { transform: none; }
+.secret-box .log { font-family: var(--fm); font-size: 11px; letter-spacing: .2em; color: var(--faint); text-transform: uppercase; margin-bottom: 20px; }
+.secret-box .jet-ico { color: var(--acc); margin-bottom: 22px; filter: drop-shadow(0 0 18px rgba(94,177,255,.4)); }
+.secret-box .jet-ico svg { width: 130px; height: auto; }
+.secret-box .t { font-family: var(--fd); font-weight: 700; font-size: clamp(20px, 3.4vw, 26px); color: var(--ink); }
+.secret-box .s { font-family: var(--fm); font-size: 12.5px; color: var(--dim); margin-top: 14px; line-height: 1.7; }
+.secret-box .n { font-family: var(--fm); font-size: 10.5px; color: var(--faint); margin-top: 22px; letter-spacing: .1em; }
+
+/* ── тосты ── */
+#toast {
+  position: fixed; bottom: 28px; left: 50%; transform: translate(-50%, 20px);
+  z-index: 200; padding: 11px 20px; border-radius: 999px;
+  background: rgba(20,22,28,.92); border: 1px solid rgba(94,177,255,.4);
+  backdrop-filter: blur(12px); -webkit-backdrop-filter: blur(12px);
+  font-family: var(--fm); font-size: 13px; color: var(--ink);
+  opacity: 0; visibility: hidden; transition: opacity .25s, transform .25s var(--ease), visibility .25s;
+  box-shadow: 0 12px 32px rgba(0,0,0,.5);
+}
+#toast.show { opacity: 1; visibility: visible; transform: translate(-50%, 0); }
+
+/* ── мобилка ── */
+@media (max-width: 640px) {
+  .wrap { padding: 0 20px; }
+  .hero { min-height: 82vh; }
+  .section { padding: 64px 0 0; }
+  .bio { font-size: 15.5px; }
+  .top-meta { padding-top: 22px; }
+  .sk.wide { flex-wrap: wrap; gap: 8px 14px; }
+  .sk.wide .ds { margin-left: 0; width: 100%; }
+  .gallery { grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); gap: 9px; }
+  .foot { margin-top: 64px; flex-wrap: wrap; gap: 12px; }
+}
+</style>
+</head>
+<body>
+
+<div id="shader"></div>
+<div id="aurora"></div>
+<div id="vignette"></div>
+
+<!-- силуэт фланкера (су-27/35, вид сверху), переиспользуется пасхалкой -->
+<svg id="jet-src" style="display:none" viewBox="-6 -6 303 208.74" fill="currentColor" xmlns="http://www.w3.org/2000/svg">
+  <g transform="translate(-14.000000,210.870397) scale(0.100000,-0.100000)"><path d="M824 2093 c3 -10 43 -168 90 -350 84 -333 84 -333 33 -333 -52 0 -52 0 -234 182 -183 182 -183 182 -249 150 -66 -33 -66 -33 -60 -100 3 -37 8 -106 12 -154 6 -87 6 -87 56 -97 27 -6 57 -11 66 -12 29 -1 -17 -17 -70 -24 -48 -6 -48 -6 -48 -64 0 -63 10 -71 88 -71 62 0 3 -12 -124 -26 -124 -13 -244 -47 -244 -69 0 -22 120 -56 244 -69 127 -14 186 -26 124 -26 -78 0 -88 -8 -88 -71 0 -58 0 -58 48 -64 53 -7 99 -23 70 -24 -9 -1 -39 -6 -66 -12 -50 -10 -50 -10 -56 -97 -4 -48 -9 -117 -12 -154 -6 -67 -6 -67 60 -100 66 -32 66 -32 249 150 182 182 182 182 234 182 51 0 51 0 -33 -332 -47 -183 -87 -341 -90 -350 -5 -17 10 -18 228 -16 169 1 204 3 129 7 l-104 6 320 356 c199 221 330 358 344 362 13 3 61 19 106 36 54 20 141 39 255 56 95 15 225 35 288 46 63 11 183 24 266 29 165 11 394 60 394 85 0 25 -229 74 -394 85 -83 5 -203 18 -266 29 -63 11 -193 31 -288 46 -114 17 -201 36 -255 56 -45 17 -93 33 -106 36 -14 4 -145 141 -344 362 l-320 356 104 6 c75 4 40 6 -129 7 -218 2 -233 1 -228 -15z"/></g>
+</svg>
+<!-- силуэт ракеты (р-37м, вид сверху) -->
+<svg id="msl-src" style="display:none" viewBox="0 0 64 12" fill="currentColor" xmlns="http://www.w3.org/2000/svg">
+  <path d="M62 6 L54 4.9 L40 4.9 L40 3.4 L27 3.4 L27 4.9 L14 4.9 L13 1.6 L8 1.6 L8 4.9 L4 4.9 L4 7.1 L8 7.1 L8 10.4 L13 10.4 L14 7.1 L27 7.1 L27 8.6 L40 8.6 L40 7.1 L54 7.1 Z"/>
+</svg>
+
+<div class="wrap">
+  <div class="top-meta">
+    <span class="cmd mono"><span class="p">~$</span> whoami → skydxx</span>
+  </div>
+
+  <!-- HERO -->
+  <section class="hero">
+    <div class="hero-badge">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M13 2L3 14h9l-1 8 10-12h-9l1-8z"/></svg>
+      nikolay · developer &amp; founder
+    </div>
+    <h1>skydxx<b>.</b></h1>
+    <p class="role"><span id="typed"></span><span class="caret"></span></p>
+    <div class="hero-cta">
+      <a class="btn btn-primary" href="https://t.me/qnuwi" target="_blank" rel="noopener">
+        <svg viewBox="0 0 24 24" fill="currentColor"><path d="M11.944 0A12 12 0 1 0 24 12 12 12 0 0 0 11.944 0zm5.95 7.644-2.1 9.9c-.157.7-.565.87-1.144.54l-3.16-2.33-1.525 1.47c-.168.167-.31.308-.634.308l.226-3.205 5.83-5.27c.253-.226-.055-.352-.393-.126l-7.205 4.537-3.1-.97c-.675-.21-.688-.675.14-.998l12.1-4.667c.56-.203 1.05.138.866.811z"/></svg>
+        Написать в Telegram
+      </a>
+      <a class="btn" href="#projects">Проекты
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14"/><path d="m12 5 7 7-7 7"/></svg>
+      </a>
+    </div>
+    <div class="scroll-hint">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"/></svg>
+    </div>
+  </section>
+
+  <!-- ABOUT -->
+  <section class="section reveal">
+    <p class="sec-cap">01 · о себе</p>
+    <p class="bio">
+      Привет! Я <em>Николай</em>, в сети — skydxx. Делаю продукты вокруг сетей и приватности:
+      от идеи до продакшена — сервер, клиенты, боты, инфраструктура. Основал
+      <a href="https://kviyx.xyz" target="_blank" rel="noopener">KVIYX</a> — сервис
+      защищённого соединения с собственными приложениями. <em>Люблю, когда всё работает быстро и выглядит дорого.</em>
+      А когда не за клавиатурой — смотрю в небо: военная авиация, под неё тут целый <a href="#hangar">ангар</a>.
+    </p>
+  </section>
+
+  <!-- SKILLS -->
+  <section class="section reveal">
+    <p class="sec-cap">02 · чем занимаюсь</p>
+    <div class="skills">
+      <div class="sk">
+        <span class="no">/01</span>
+        <span class="nm">vpn &amp; networking</span>
+        <span class="ds">vless · sing-box · инфраструктура нод · протоколы</span>
+      </div>
+      <div class="sk">
+        <span class="no">/02</span>
+        <span class="nm">backend</span>
+        <span class="ds">python · node.js · postgres · api-дизайн</span>
+      </div>
+      <div class="sk">
+        <span class="no">/03</span>
+        <span class="nm">apps</span>
+        <span class="ds">flutter · macos · windows · linux · ios</span>
+      </div>
+      <div class="sk">
+        <span class="no">/04</span>
+        <span class="nm">telegram bots</span>
+        <span class="ds">платежи · подписки · автоматизация</span>
+      </div>
+      <div class="sk">
+        <span class="no">/05</span>
+        <span class="nm">product &amp; ui</span>
+        <span class="ds">дизайн интерфейсов · лендинги · бренд</span>
+      </div>
+      <a class="sk" href="#hangar">
+        <span class="no">/06</span>
+        <span class="nm">военная авиация</span>
+        <span class="ds">споттинг · матчасть · фотки в ангаре ↓</span>
+      </a>
+      <div class="sk wide">
+        <span class="no">++</span>
+        <span class="nm">docker · nginx · ci/cd · linux · сети · железо</span>
+        <span class="ds">база, само собой</span>
+      </div>
+    </div>
+  </section>
+
+  <!-- PROJECTS -->
+  <section class="section reveal" id="projects">
+    <p class="sec-cap">03 · проекты</p>
+    <div class="projects">
+      <a class="card" href="https://kviyx.xyz" target="_blank" rel="noopener">
+        <h3>KVIYX <span class="arr">↗</span></h3>
+        <p>Сервис быстрого и безопасного соединения: сайт, личный кабинет, Telegram-бот и собственные приложения под все платформы.</p>
+        <div class="tags">
+          <span class="badge live">live</span>
+          <span class="tag">python</span><span class="tag">flutter</span><span class="tag">vless</span>
+        </div>
+      </a>
+      <a class="card" href="https://kviyx.xyz" target="_blank" rel="noopener">
+        <h3>TUN Client <span class="arr">↗</span></h3>
+        <p>Фирменное приложение-клиент для KVIYX под все платформы. Десктоп уже почти готов: linux, windows и macos.</p>
+        <div class="tags">
+          <span class="badge soon">soon</span>
+          <span class="tag">flutter</span><span class="tag">sing-box</span><span class="tag">desktop</span>
+        </div>
+      </a>
+      <div class="card">
+        <h3>MyAI</h3>
+        <p>Персональная AI-система: сервер, десктоп, iOS и Telegram-бот с общей памятью — ассистент, который всегда рядом.</p>
+        <div class="tags">
+          <span class="badge priv">личное — не продаётся</span>
+          <span class="tag">python</span><span class="tag">swift</span><span class="tag">claude</span>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- HANGAR -->
+  <section class="section reveal" id="hangar">
+    <p class="sec-cap">04 · ангар</p>
+    <p class="hangar-note">
+      Военная авиация — давняя любовь. <em>Су-шки, МиГи, стратеги и всё, что громко летает.</em>
+      Сюда складываю свои фотки самолётов — коллекция пополняется.
+    </p>
+    <div class="gallery" id="gallery"></div>
+    <div class="hangar-empty" id="hangar-empty" hidden>
+      ангар пока пустой<br>первые борта уже на рулёжке
+    </div>
+  </section>
+
+  <!-- CONTACTS -->
+  <section class="section reveal">
+    <p class="sec-cap">05 · контакты</p>
+    <div class="contacts">
+      <a class="ct" href="https://t.me/qnuwi" target="_blank" rel="noopener">
+        <span class="ct-ico"><svg viewBox="0 0 24 24" fill="currentColor"><path d="M11.944 0A12 12 0 1 0 24 12 12 12 0 0 0 11.944 0zm5.95 7.644-2.1 9.9c-.157.7-.565.87-1.144.54l-3.16-2.33-1.525 1.47c-.168.167-.31.308-.634.308l.226-3.205 5.83-5.27c.253-.226-.055-.352-.393-.126l-7.205 4.537-3.1-.97c-.675-.21-.688-.675.14-.998l12.1-4.667c.56-.203 1.05.138.866.811z"/></svg></span>
+        <span class="ct-body"><span class="ct-name">Telegram</span><br><span class="ct-val">@qnuwi</span></span>
+      </a>
+      <a class="ct" href="https://t.me/zelenskyzvo" target="_blank" rel="noopener">
+        <span class="ct-ico"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m3 11 18-5v12L3 14v-3z"/><path d="M11.6 16.8a3 3 0 1 1-5.8-1.6"/></svg></span>
+        <span class="ct-body"><span class="ct-name">Канал</span><br><span class="ct-val">@zelenskyzvo</span></span>
+      </a>
+      <a class="ct" href="https://github.com/skydxx" target="_blank" rel="noopener">
+        <span class="ct-ico"><svg viewBox="0 0 24 24" fill="currentColor"><path d="M12 .3a12 12 0 0 0-3.8 23.4c.6.1.8-.3.8-.6v-2c-3.3.7-4-1.6-4-1.6-.6-1.4-1.4-1.8-1.4-1.8-1-.7.1-.7.1-.7 1.2 0 1.9 1.2 1.9 1.2 1 1.8 2.8 1.3 3.5 1 0-.8.4-1.3.7-1.6-2.7-.3-5.5-1.3-5.5-6 0-1.2.5-2.3 1.3-3.1-.2-.4-.6-1.6 0-3.2 0 0 1-.3 3.4 1.2a11.5 11.5 0 0 1 6 0c2.3-1.5 3.3-1.2 3.3-1.2.6 1.6.2 2.8.1 3.2.8.8 1.3 1.9 1.3 3.2 0 4.6-2.8 5.6-5.5 5.9.4.4.8 1.1.8 2.2v3.3c0 .3.1.7.8.6A12 12 0 0 0 12 .3"/></svg></span>
+        <span class="ct-body"><span class="ct-name">GitHub</span><br><span class="ct-val">github.com/skydxx</span></span>
+      </a>
+      <button class="ct" id="mail-btn" type="button" title="клик — скопировать">
+        <span class="ct-ico"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="4" width="20" height="16" rx="2"/><path d="m22 7-10 6L2 7"/></svg></span>
+        <span class="ct-body" style="text-align:left"><span class="ct-name">Почта</span><br><span class="ct-val">sky@skydxx.ru</span></span>
+      </button>
+    </div>
+  </section>
+
+  <!-- FOOTER -->
+  <div class="foot">
+    <span>© <span id="year"></span> skydxx · один html, ноль фреймворков</span>
+    <button class="egg-btn" id="egg" type="button" title="серьёзно, не надо">▸ пуск</button>
+  </div>
+</div>
+
+<div class="secret-ov" id="secret-ov" aria-hidden="true">
+  <div class="secret-box">
+    <div class="log">// журнал инцидентов</div>
+    <div class="jet-ico" id="secret-jet"></div>
+    <div class="t" id="secret-t"></div>
+    <div class="s" id="secret-s"></div>
+    <div class="n">клик или esc — закрыть</div>
+  </div>
+</div>
+
+<div id="lb" aria-hidden="true">
+  <img alt="" id="lb-img">
+  <span class="cap" id="lb-cap"></span>
+</div>
+
+<div id="toast"></div>
+
+<script>
+(function () {
+"use strict";
+
+/* ── фон: ночное небо — звёзды + инверсионные следы ── */
+(function () {
+  var host = document.getElementById('shader');
+  if (!host) return;
+  var reduced = matchMedia('(prefers-reduced-motion: reduce)').matches;
+  var canvas = document.createElement('canvas');
+  var ctx = canvas.getContext('2d');
+  if (!ctx) return;
+  host.appendChild(canvas);
+
+  var W = 0, H = 0, dpr = 1;
+  var stars = [];
+  // палитра под сайт: белый, ледяной, фиолетовый
+  var tints = ['255,255,255', '255,255,255', '158,203,255', '158,203,255', '182,163,247'];
+
+  function build() {
+    stars = [];
+    var n = Math.round(W * H / 8500);
+    for (var i = 0; i < n; i++) {
+      var depth = Math.random();               // 0 — далеко, 1 — близко
+      stars.push({
+        x: Math.random() * W,
+        y: Math.random() * H,
+        r: .4 + depth * 1.1,
+        a: .12 + depth * .5,
+        vx: -(.02 + depth * .1),               // медленный дрейф влево
+        tw: .4 + Math.random() * 1.4,          // скорость мерцания
+        ph: Math.random() * Math.PI * 2,
+        c: tints[Math.floor(Math.random() * tints.length)]
+      });
+    }
+  }
+  function resize() {
+    dpr = Math.min(devicePixelRatio || 1, 2);
+    W = innerWidth; H = innerHeight;
+    canvas.width = W * dpr; canvas.height = H * dpr;
+    ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+    build();
+    if (reduced) draw(0);
+  }
+
+  // инверсионные следы: редкие, тихие, высоко
+  var trails = [], nextTrail = 4000 + Math.random() * 5000;
+  function spawnTrail() {
+    var ltr = Math.random() > .5;
+    var y = H * (.08 + Math.random() * .55);
+    trails.push({
+      x: ltr ? -60 : W + 60,
+      y: y,
+      vx: (ltr ? 1 : -1) * (.5 + Math.random() * .45),   // px/кадр — неторопливо
+      vy: (Math.random() - .5) * .06,
+      len: 160 + Math.random() * 140,
+      a: .12 + Math.random() * .1,
+      c: Math.random() > .8 ? '255,184,100' : '190,215,255'
+    });
+  }
+
+  function draw(t) {
+    ctx.clearRect(0, 0, W, H);
+    for (var i = 0; i < stars.length; i++) {
+      var s = stars[i];
+      var a = s.a * (.62 + .38 * Math.sin(t * .001 * s.tw + s.ph));
+      ctx.fillStyle = 'rgba(' + s.c + ',' + a + ')';
+      ctx.beginPath();
+      ctx.arc(s.x, s.y, s.r, 0, 6.2832);
+      ctx.fill();
+      if (!reduced) {
+        s.x += s.vx;
+        if (s.x < -3) { s.x = W + 3; s.y = Math.random() * H; }
+      }
+    }
+    for (var j = trails.length - 1; j >= 0; j--) {
+      var tr = trails[j];
+      var tail = -Math.sign(tr.vx) * tr.len;
+      var g = ctx.createLinearGradient(tr.x, tr.y, tr.x + tail, tr.y - tr.vy * 60);
+      g.addColorStop(0, 'rgba(' + tr.c + ',' + tr.a + ')');
+      g.addColorStop(1, 'rgba(' + tr.c + ',0)');
+      ctx.strokeStyle = g;
+      ctx.lineWidth = 1.1;
+      ctx.beginPath();
+      ctx.moveTo(tr.x, tr.y);
+      ctx.lineTo(tr.x + tail, tr.y - tr.vy * 60);
+      ctx.stroke();
+      // светящаяся точка-борт
+      ctx.fillStyle = 'rgba(' + tr.c + ',' + (tr.a * 2.4) + ')';
+      ctx.beginPath();
+      ctx.arc(tr.x, tr.y, 1.4, 0, 6.2832);
+      ctx.fill();
+      tr.x += tr.vx; tr.y += tr.vy;
+      if (tr.x < -tr.len - 80 || tr.x > W + tr.len + 80) trails.splice(j, 1);
+    }
+  }
+
+  resize(); addEventListener('resize', resize);
+  if (reduced) return;                          // статичное небо без анимации
+
+  var visible = true, last = 0;
+  document.addEventListener('visibilitychange', function () { visible = !document.hidden; });
+  (function loop(t) {
+    requestAnimationFrame(loop);
+    if (!visible) return;
+    if (t - last > 16.6) {
+      last = t;
+      nextTrail -= 16.6;
+      if (nextTrail <= 0) { spawnTrail(); nextTrail = 9000 + Math.random() * 9000; }
+      draw(t);
+    }
+  })(0);
+})();
+
+/* ── курсор-прицел ── */
+(function () {
+  if (!matchMedia('(pointer: fine)').matches) return;
+  var dot = document.createElement('div'); dot.className = 'cur-dot cur-hide';
+  var ret = document.createElement('div'); ret.className = 'cur-ret cur-hide';
+  document.body.appendChild(dot); document.body.appendChild(ret);
+  document.documentElement.classList.add('cur-on');
+  var mx = innerWidth / 2, my = innerHeight / 2, rx = mx, ry = my, shown = false;
+  var hoverSel = 'a, button, .sk, .card, .ct, .ph';
+  addEventListener('mousemove', function (e) {
+    mx = e.clientX; my = e.clientY;
+    dot.style.transform = 'translate(' + mx + 'px,' + my + 'px) translate(-50%,-50%)';
+    if (!shown) { shown = true; dot.classList.remove('cur-hide'); ret.classList.remove('cur-hide'); }
+  });
+  document.addEventListener('mouseleave', function () {
+    dot.classList.add('cur-hide'); ret.classList.add('cur-hide'); shown = false;
+  });
+  addEventListener('mousedown', function () { ret.classList.add('down'); });
+  addEventListener('mouseup', function () { ret.classList.remove('down'); });
+  addEventListener('mouseover', function (e) { if (e.target.closest(hoverSel)) ret.classList.add('hover'); });
+  addEventListener('mouseout', function (e) { if (e.target.closest(hoverSel)) ret.classList.remove('hover'); });
+  (function loop() {
+    rx += (mx - rx) * 0.16; ry += (my - ry) * 0.16;
+    ret.style.transform = 'translate(' + rx + 'px,' + ry + 'px) translate(-50%,-50%)';
+    requestAnimationFrame(loop);
+  })();
+})();
+
+/* ── печатающаяся роль ── */
+(function () {
+  var el = document.getElementById('typed');
+  var lines = ['строю vpn-сервисы', 'пишу backend и ботов', 'собираю flutter-приложения', 'держу инфраструктуру', 'основатель kviyx', 'болею военной авиацией'];
+  var li = 0, ci = 0, del = false;
+  if (matchMedia('(prefers-reduced-motion: reduce)').matches) { el.textContent = lines[0]; return; }
+  (function tick() {
+    var line = lines[li];
+    el.textContent = line.slice(0, ci);
+    var wait;
+    if (!del) {
+      if (ci < line.length) { ci++; wait = 55 + Math.random() * 60; }
+      else { del = true; wait = 2100; }
+    } else {
+      if (ci > 0) { ci--; wait = 28; }
+      else { del = false; li = (li + 1) % lines.length; wait = 420; }
+    }
+    setTimeout(tick, wait);
+  })();
+})();
+
+/* ── glow за курсором на карточках ── */
+if (matchMedia('(hover: hover)').matches) {
+  document.querySelectorAll('.card').forEach(function (el) {
+    el.addEventListener('mousemove', function (e) {
+      var r = el.getBoundingClientRect();
+      el.style.setProperty('--mx', (e.clientX - r.left) + 'px');
+      el.style.setProperty('--my', (e.clientY - r.top) + 'px');
+    });
+  });
+}
+
+/* ── scroll reveal ── */
+(function () {
+  var els = document.querySelectorAll('.reveal');
+  if (!('IntersectionObserver' in window)) { els.forEach(function (el) { el.classList.add('in'); }); return; }
+  var io = new IntersectionObserver(function (entries) {
+    entries.forEach(function (en) {
+      if (en.isIntersecting) { en.target.classList.add('in'); io.unobserve(en.target); }
+    });
+  }, { threshold: 0.12, rootMargin: '0px 0px -50px 0px' });
+  els.forEach(function (el) { io.observe(el); });
+})();
+
+/* ── тост + копирование почты ── */
+var toast = document.getElementById('toast'), toastT = null;
+function showToast(msg) {
+  toast.textContent = msg;
+  toast.classList.add('show');
+  clearTimeout(toastT);
+  toastT = setTimeout(function () { toast.classList.remove('show'); }, 1800);
+}
+document.getElementById('mail-btn').addEventListener('click', function () {
+  var mail = 'sky@skydxx.ru';
+  if (navigator.clipboard) {
+    navigator.clipboard.writeText(mail).then(function () { showToast('скопировано: ' + mail); });
+  } else { location.href = 'mailto:' + mail; }
+});
+
+document.getElementById('year').textContent = new Date().getFullYear();
+
+/* ── ангар: опубликованные фотографии ── */
+(function () {
+  var grid = document.getElementById('gallery');
+  var empty = document.getElementById('hangar-empty');
+  var lb = document.getElementById('lb');
+  var lbImg = document.getElementById('lb-img');
+  var lbCap = document.getElementById('lb-cap');
+
+  function escLb(e) { if (e.key === 'Escape') closeLb(); }
+  function openLb(src, cap) {
+    lbImg.src = src; lbCap.textContent = cap;
+    lb.classList.add('show');
+    document.addEventListener('keydown', escLb);
+  }
+  function closeLb() {
+    lb.classList.remove('show');
+    document.removeEventListener('keydown', escLb);
+  }
+  lb.addEventListener('click', closeLb);
+
+  var pics = ['витязи 12.06.26.jpg', 'стрижи кронштадт 12.06.26.jpg'];
+      if (!pics.length) { empty.hidden = false; return; }
+      pics.forEach(function (name) {
+        var cap = name.replace(/\.[^.]+$/, '').replace(/[-_]+/g, ' ');
+        var b = document.createElement('button');
+        b.className = 'ph'; b.type = 'button'; b.title = cap;
+        var img = document.createElement('img');
+        img.loading = 'lazy'; img.alt = cap;
+        img.src = 'photos/' + encodeURIComponent(name);
+        b.appendChild(img);
+        b.addEventListener('click', function () { openLb(img.src, cap); });
+        grid.appendChild(b);
+      });
+})();
+
+/* ── пасхалка: пуск ── */
+(function () {
+  var btn = document.getElementById('egg');
+  var ov = document.getElementById('secret-ov');
+  var tEl = document.getElementById('secret-t');
+  var sEl = document.getElementById('secret-s');
+  var jetHome = document.getElementById('secret-jet');
+  var jetSrc = document.getElementById('jet-src');
+  var mslSrc = document.getElementById('msl-src');
+  jetHome.innerHTML = jetSrc.outerHTML.replace('id="jet-src"', '').replace('display:none', '');
+
+  var msgs = [
+    ['перехват выполнен', 'кнопка «пуск» на личном сайте. серьёзно?<br>дежурное звено уже вернулось на базу'],
+    ['повторный вылет', 'лётчик просил передать, что у него вообще-то обед'],
+    ['цель захвачена. это ты', 'по протоколу теперь ты обязан посмотреть ангар'],
+    ['ладно, держи секрет', 'весь этот сайт весит меньше, чем один твой стикер в телеге'],
+    ['топливо кончилось', 'полёты окончены. дальше пешком — в ангар или в telegram']
+  ];
+  var count = 0, running = false;
+  var reduced = matchMedia('(prefers-reduced-motion: reduce)').matches;
+
+  function esc(e) { if (e.key === 'Escape') close(); }
+  function open() {
+    var m = msgs[Math.min(count - 1, msgs.length - 1)];
+    tEl.textContent = m[0];
+    sEl.innerHTML = m[1];
+    ov.classList.add('show');
+    document.addEventListener('keydown', esc);
+  }
+  function close() { ov.classList.remove('show'); document.removeEventListener('keydown', esc); }
+  ov.addEventListener('click', close);
+
+  function flyMsl(topvh) {
+    var m = document.createElement('div');
+    m.className = 'msl-fly';
+    // выравниваем по осевой линии фюзеляжа истребителя
+    m.style.top = 'calc(' + topvh + 'vh + 22px)';
+    m.innerHTML = '<div class="mtrail"></div>' + mslSrc.outerHTML.replace('id="msl-src"', '').replace('display:none', '');
+    document.body.appendChild(m);
+    setTimeout(function () { m.remove(); }, 2400);
+  }
+  function flyJet() {
+    var topvh = 18 + Math.random() * 46;
+    var wrap = document.createElement('div');
+    wrap.className = 'jet-fly';
+    wrap.style.top = topvh + 'vh';
+    wrap.innerHTML = '<div class="trail"></div>' + jetSrc.outerHTML.replace('id="jet-src"', '').replace('display:none', '');
+    document.body.appendChild(wrap);
+    setTimeout(function () { wrap.remove(); }, 3600);
+    // истребитель пускает ракету — она обгоняет его с оранжевым выхлопом
+    setTimeout(function () { flyMsl(topvh); }, 520);
+  }
+
+  btn.addEventListener('click', function () {
+    count++;
+    if (!reduced && !running) {
+      running = true;
+      document.body.classList.add('glitch');
+      setTimeout(function () { document.body.classList.remove('glitch'); }, 950);
+      flyJet();
+      if (count > 1) setTimeout(flyJet, 240);
+      setTimeout(function () { running = false; }, 1200);
+    }
+    setTimeout(open, reduced ? 0 : 900);
+  });
+})();
+
+})();
+</script>
+</body>
+</html>
